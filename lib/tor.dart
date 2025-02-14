@@ -233,6 +233,8 @@ class Tor {
 
       _bootstrapped = false;
       _proxyPort = -1;
+
+      broadcastState();
     }
   }
 
