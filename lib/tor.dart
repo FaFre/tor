@@ -46,10 +46,7 @@ class Tor {
   Pointer<Void> _proxyPtr = nullptr;
 
   /// Flag to indicate that Tor client and proxy have started. Traffic is routed through the proxy only if it is also [enabled].
-  bool get started => _started;
-
-  /// Getter for the started flag.
-  bool _started = false;
+  bool get started => _proxyPort > -1;
 
   /// Flag to indicate that traffic should flow through the proxy.
   bool _enabled = false;
@@ -187,7 +184,6 @@ class Tor {
     // Set the client pointer and started flag.
     _clientPtr = Pointer.fromAddress(tor.client.address);
     _proxyPtr = Pointer.fromAddress(tor.proxy.address);
-    _started = true;
 
     // Bootstrap the Tor service.
     bootstrap();
@@ -222,18 +218,25 @@ class Tor {
 
   /// Prevent traffic flowing through the proxy
   void disable() {
+    stop();
+
     _enabled = false;
     broadcastState();
   }
 
   /// Stops the proxy
-  stop() async {
+  void stop() {
     final lib = rust.NativeLibrary(_lib);
-    lib.tor_proxy_stop(_proxyPtr);
-    _proxyPtr = nullptr;
+    if (_proxyPtr != nullptr) {
+      lib.tor_proxy_stop(_proxyPtr);
+      _proxyPtr = nullptr;
+
+      _bootstrapped = false;
+      _proxyPort = -1;
+    }
   }
 
-  setClientDormant(bool dormant) async {
+  void setClientDormant(bool dormant) {
     if (_clientPtr == nullptr || !started || !bootstrapped) {
       throw ClientNotActive();
     }
