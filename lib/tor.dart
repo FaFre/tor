@@ -171,7 +171,8 @@ class Tor {
       final tor = lib.tor_start(
           newPort,
           stateDir.path.toNativeUtf8() as Pointer<Char>,
-          cacheDir.path.toNativeUtf8() as Pointer<Char>);
+          cacheDir.path.toNativeUtf8() as Pointer<Char>,
+          'IT'.toNativeUtf8() as Pointer<Char>);
 
       // Throw an exception if the Tor service fails to start.
       if (tor.client == nullptr) {

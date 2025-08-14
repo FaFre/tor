@@ -6,7 +6,7 @@
 use crate::error::update_last_error;
 use arti::socks;
 use arti_client::config::CfgPath;
-use arti_client::{DormantMode, TorClient, TorClientConfig};
+use arti_client::{DormantMode, StreamPrefs, TorClient, TorClientConfig};
 use lazy_static::lazy_static;
 use std::ffi::{c_char, c_void, CStr};
 use std::{io, ptr};
@@ -41,6 +41,7 @@ pub unsafe extern "C" fn tor_start(
     socks_port: u16,
     state_dir: *const c_char,
     cache_dir: *const c_char,
+    exit_country: *const c_char,
 ) -> Tor {
     let err_ret = Tor {
         client: ptr::null_mut(),
@@ -49,6 +50,15 @@ pub unsafe extern "C" fn tor_start(
 
     let state_dir = unwrap_or_return!(CStr::from_ptr(state_dir).to_str(), err_ret);
     let cache_dir = unwrap_or_return!(CStr::from_ptr(cache_dir).to_str(), err_ret);
+
+    let exit_country_code = if exit_country.is_null() {
+        None
+    } else {
+        match CStr::from_ptr(exit_country).to_str() {
+            Ok(country) if !country.is_empty() => Some(country.to_string()),
+            _ => None,
+        }
+    };
 
     let runtime = unwrap_or_return!(TokioNativeTlsRuntime::create(), err_ret);
 
@@ -61,7 +71,7 @@ pub unsafe extern "C" fn tor_start(
 
     let cfg = unwrap_or_return!(cfg_builder.build(), err_ret);
 
-    let client = unwrap_or_return!(
+    let mut client = unwrap_or_return!(
         runtime.block_on(async {
             TorClient::with_runtime(runtime.clone())
                 .config(cfg)
@@ -70,6 +80,16 @@ pub unsafe extern "C" fn tor_start(
         }),
         err_ret
     );
+    // Set exit country preference if provided
+    if let Some(country_code) = exit_country_code {
+        if let Ok(country) = country_code.parse() {
+            let mut prefs = StreamPrefs::new();
+            prefs.exit_country(country);
+
+            client.set_stream_prefs(prefs);
+            println!("Set exit country to {country_code}");
+        }
+    }
 
     let proxy_handle_box = Box::new(start_proxy(socks_port, client.clone()));
     let client_box = Box::new(client.clone());
