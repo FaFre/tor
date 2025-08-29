@@ -5,10 +5,12 @@
 
 use crate::error::update_last_error;
 use arti::socks;
+use arti_client::config::pt::TransportConfigBuilder;
 use arti_client::config::CfgPath;
 use arti_client::{DormantMode, TorClient, TorClientConfig};
 use lazy_static::lazy_static;
 use std::ffi::{c_char, c_void, CStr};
+use std::net::SocketAddr;
 use std::{io, ptr};
 use tokio::runtime::{Builder, Runtime};
 use tokio::task::JoinHandle;
@@ -41,6 +43,9 @@ pub unsafe extern "C" fn tor_start(
     socks_port: u16,
     state_dir: *const c_char,
     cache_dir: *const c_char,
+    obfs4_port: u16,
+    snowflake_port: u16,
+    bridge_lines: *const c_char,
 ) -> Tor {
     let err_ret = Tor {
         client: ptr::null_mut(),
@@ -58,6 +63,42 @@ pub unsafe extern "C" fn tor_start(
         .state_dir(CfgPath::new(state_dir.to_owned()))
         .cache_dir(CfgPath::new(cache_dir.to_owned()));
     cfg_builder.address_filter().allow_onion_addrs(true);
+
+    if obfs4_port > 0 {
+        let mut transport = TransportConfigBuilder::default();
+        transport
+            .protocols(vec!["obfs4".parse().unwrap()])
+            .proxy_addr(SocketAddr::new("127.0.0.1".parse().unwrap(), obfs4_port));
+
+        cfg_builder.bridges().transports().push(transport);
+    }
+
+    if snowflake_port > 0 {
+        let mut transport = TransportConfigBuilder::default();
+        transport
+            .protocols(vec!["snowflake".parse().unwrap()])
+            .proxy_addr(SocketAddr::new(
+                "127.0.0.1".parse().unwrap(),
+                snowflake_port,
+            ));
+        cfg_builder.bridges().transports().push(transport);
+    }
+
+    if bridge_lines != ptr::null() {
+        let bridge_lines = CStr::from_ptr(bridge_lines).to_str();
+        if let Ok(l) = bridge_lines {
+            for bridge_line in l.split("\n") {
+                match bridge_line.parse() {
+                    Ok(bridge) => {
+                        cfg_builder.bridges().bridges().push(bridge);
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to parse bridge line '{}': {}", bridge_line, e);
+                    }
+                }
+            }
+        }
+    }
 
     let cfg = unwrap_or_return!(cfg_builder.build(), err_ret);
 

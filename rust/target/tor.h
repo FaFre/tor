@@ -8,7 +8,12 @@ typedef struct Tor {
   void *proxy;
 } Tor;
 
-struct Tor tor_start(uint16_t socks_port, const char *state_dir, const char *cache_dir);
+struct Tor tor_start(uint16_t socks_port,
+                     const char *state_dir,
+                     const char *cache_dir,
+                     uint16_t obfs4_port,
+                     uint16_t snowflake_port,
+                     const char *bridge_lines);
 
 bool tor_client_bootstrap(void *client);
 

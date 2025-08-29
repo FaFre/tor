@@ -149,7 +149,8 @@ class Tor {
   /// Throws an exception if the Tor service fails to start.
   ///
   /// Returns a Future that completes when the Tor service has started.
-  Future<void> start() async {
+  Future<void> start(
+      {int? obfs4Port, int? snowflakePort, String? bridgeLines}) async {
     broadcastState();
 
     // Set the state and cache directories.
@@ -171,7 +172,10 @@ class Tor {
       final tor = lib.tor_start(
           newPort,
           stateDir.path.toNativeUtf8() as Pointer<Char>,
-          cacheDir.path.toNativeUtf8() as Pointer<Char>);
+          cacheDir.path.toNativeUtf8() as Pointer<Char>,
+          obfs4Port ?? -1,
+          snowflakePort ?? -1,
+          bridgeLines?.toNativeUtf8() as Pointer<Char>? ?? nullptr);
 
       // Throw an exception if the Tor service fails to start.
       if (tor.client == nullptr) {
