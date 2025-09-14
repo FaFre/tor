@@ -45,6 +45,37 @@ class NativeLibrary {
       Tor Function(int, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>, int, int,
           ffi.Pointer<ffi.Char>)>();
 
+  bool tor_reconfigure(
+    ffi.Pointer<ffi.Void> client,
+    ffi.Pointer<ffi.Char> state_dir,
+    ffi.Pointer<ffi.Char> cache_dir,
+    int obfs4_port,
+    int snowflake_port,
+    ffi.Pointer<ffi.Char> bridge_lines,
+  ) {
+    return _tor_reconfigure(
+      client,
+      state_dir,
+      cache_dir,
+      obfs4_port,
+      snowflake_port,
+      bridge_lines,
+    );
+  }
+
+  late final _tor_reconfigurePtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Bool Function(
+              ffi.Pointer<ffi.Void>,
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>,
+              ffi.Uint16,
+              ffi.Uint16,
+              ffi.Pointer<ffi.Char>)>>('tor_reconfigure');
+  late final _tor_reconfigure = _tor_reconfigurePtr.asFunction<
+      bool Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>,
+          ffi.Pointer<ffi.Char>, int, int, ffi.Pointer<ffi.Char>)>();
+
   bool tor_client_bootstrap(
     ffi.Pointer<ffi.Void> client,
   ) {

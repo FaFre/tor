@@ -48,6 +48,8 @@ class Tor {
   /// Flag to indicate that Tor client and proxy have started. Traffic is routed through the proxy only if it is also [enabled].
   bool get started => _proxyPort > -1;
 
+  bool get hasClient => _clientPtr != nullptr;
+
   /// Flag to indicate that traffic should flow through the proxy.
   bool _enabled = false;
 
@@ -108,15 +110,6 @@ class Tor {
     if (kDebugMode) {
       print("Instance of Tor created!");
     }
-  }
-
-  /// Start the Tor service.
-  Future<void> enable() async {
-    _enabled = true;
-    if (!started) {
-      await start();
-    }
-    broadcastState();
   }
 
   void broadcastState() {
@@ -195,6 +188,30 @@ class Tor {
     // Set the proxy port.
     _proxyPort = newPort;
     broadcastState();
+  }
+
+  Future<void> reconfigure(
+      {int? obfs4Port, int? snowflakePort, String? bridgeLines}) async {
+    final lib = rust.NativeLibrary(_lib);
+
+    // Set the state and cache directories.
+    final Directory appSupportDir = await getApplicationSupportDirectory();
+    final stateDir =
+        await Directory('${appSupportDir.path}/tor_state').create();
+    final cacheDir =
+        await Directory('${appSupportDir.path}/tor_cache').create();
+
+    final reconfigured = lib.tor_reconfigure(
+        _clientPtr,
+        stateDir.path.toNativeUtf8() as Pointer<Char>,
+        cacheDir.path.toNativeUtf8() as Pointer<Char>,
+        obfs4Port ?? -1,
+        snowflakePort ?? -1,
+        bridgeLines?.toNativeUtf8() as Pointer<Char>? ?? nullptr);
+
+    if (!reconfigured) {
+      throwRustException(lib);
+    }
   }
 
   /// Bootstrap the Tor service.
