@@ -12,17 +12,17 @@ edition = "2021"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-lazy_static = "1.4"
+lazy_static = "1.5"
 tokio = { version = "1", features = ["full"] }
-arti-client = { version = "0.33.0", features = ["static", "onion-service-client"] }
-arti = { version = "1.4.6", features = ["experimental-api", "static"] }
-tor-rtcompat = { version = "0.33.0", features = ["static"] }
-tor-config = "0.33.0"
-log = "0.4.20"
+arti-client = { version = "0.34.0", features = ["static", "onion-service-client"] }
+arti = { version = "1.5.0", features = ["experimental-api", "static"] }
+tor-rtcompat = { version = "0.34.0", features = ["static"] }
+tor-config = "0.34.0"
+log = "0.4.28"
 #android_log-sys = "0.3.1"
-rlimit = "0.10.1"
-anyhow = "1.0.79"
-time = "0.3.36"
+rlimit = "0.10.2"
+anyhow = "1.0.99"
+time = "0.3.43"
 
 [build-dependencies]
-cbindgen = "= 0.24.3"
+cbindgen = "=0.24.3"
